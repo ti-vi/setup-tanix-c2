@@ -1,0 +1,3 @@
+# Ignorar archivos de configuración de VS Code
+.vscode/
+*.code-workspace
