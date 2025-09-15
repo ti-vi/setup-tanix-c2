@@ -1,4 +1,3 @@
-
 # Script de PowerShell para preparar el dispositivo Tanix (versión Windows)
 # Verifica dispositivos ADB, desactiva apps, instala APKs y reinicia opcionalmente
 
@@ -7,6 +6,22 @@ $adbDevices = & adb devices | Select-Object -Skip 1 | Where-Object { $_ -match '
 if (-not $adbDevices) {
     Write-Host "No hay dispositivos ADB detectados. Conecta un dispositivo y vuelve a intentar."
     exit 1
+}
+
+# Definir zona horaria desde opciones.txt, si existe
+$opcionesFile = "opciones.txt"
+$zonahoraria = ""
+if (Test-Path $opcionesFile) {
+    $linea = Get-Content $opcionesFile | Where-Object { $_ -match '^zonahoraria=' }
+    if ($linea) {
+        $zonahoraria = $linea -replace '^zonahoraria=', ''
+        if ($zonahoraria) {
+            Write-Host "Definiendo zona horaria a: $zonahoraria"
+            & adb shell setprop persist.sys.timezone $zonahoraria
+        } else {
+            Write-Host "No se definió zona horaria. Se mantiene la actual."
+        }
+    }
 }
 
 Write-Host "Desactivando apps..."

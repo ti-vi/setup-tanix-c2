@@ -5,6 +5,18 @@ if ! adb devices | awk 'NR>1 && $2=="device"' | grep -q .; then
   exit 1
 fi
 
+# Definir zona horaria desde opciones.txt
+OPCIONES_FILE="opciones.txt"
+if [ -f "$OPCIONES_FILE" ]; then
+  zonahoraria=$(grep '^zonahoraria=' "$OPCIONES_FILE" | cut -d'=' -f2)
+  if [ -n "$zonahoraria" ]; then
+    echo "Definiendo zona horaria a: $zonahoraria"
+    adb shell setprop persist.sys.timezone "$zonahoraria"
+  else
+    echo "No se definió zona horaria. Se mantiene la actual."
+  fi
+fi
+
 # Script para desactivar aplicaciones y luego instalar archivos APK en un dispositivo Android usando ADB.
 echo "Desactivando apps..."
 # Archivo que contiene la lista de paquetes a desactivar, uno por línea.
