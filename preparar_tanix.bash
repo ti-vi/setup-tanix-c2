@@ -5,12 +5,29 @@ if ! adb devices | awk 'NR>1 && $2=="device"' | grep -q .; then
   exit 1
 fi
 
+echo "Instalando apps..."
+# Carpeta donde se encuentran los archivos APK a instalar.
+APK_DIR="apps"
+# Busca archivos con extensión .apk en el directorio especificado.
+APK_FILES=("$APK_DIR"/*.apk)
+# Si no hay archivos APK, muestra un mensaje y termina el script.
+if [ ! -e "${APK_FILES[0]}" ]; then
+  echo "No hay archivos apk en $APK_DIR. Nada para instalar."
+  exit 0
+fi
+# Instala cada archivo APK encontrado en el directorio.
+for apk in "${APK_FILES[@]}"; do
+  echo "Instalando $apk ..."
+  adb install -r "$apk"
+done
+
 # Definir zona horaria desde opciones.txt
 OPCIONES_FILE="opciones.txt"
 if [ -f "$OPCIONES_FILE" ]; then
   zonahoraria=$(grep '^zonahoraria=' "$OPCIONES_FILE" | cut -d'=' -f2)
   if [ -n "$zonahoraria" ]; then
     echo "Definiendo zona horaria a: $zonahoraria"
+    adb shell settings put global auto_time_zone 0
     adb shell setprop persist.sys.timezone "$zonahoraria"
   else
     echo "No se definió zona horaria. Se mantiene la actual."
@@ -40,22 +57,6 @@ else
     adb shell pm disable-user --user 0 "$pkg" > /dev/null 2>&1
   done
 fi
-
-echo "Instalando apps..."
-# Carpeta donde se encuentran los archivos APK a instalar.
-APK_DIR="apps"
-# Busca archivos con extensión .apk en el directorio especificado.
-APK_FILES=("$APK_DIR"/*.apk)
-# Si no hay archivos APK, muestra un mensaje y termina el script.
-if [ ! -e "${APK_FILES[0]}" ]; then
-  echo "No hay archivos apk en $APK_DIR. Nada para instalar."
-  exit 0
-fi
-# Instala cada archivo APK encontrado en el directorio.
-for apk in "${APK_FILES[@]}"; do
-  echo "Instalando $apk ..."
-  adb install -r "$apk"
-done
 
 # Pregunta al usuario si desea reiniciar el dispositivo
 read -p "¿Deseas reiniciar el dispositivo ahora? (y/n): " respuesta

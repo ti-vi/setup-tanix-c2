@@ -8,6 +8,22 @@ if (-not $adbDevices) {
     exit 1
 }
 
+Write-Host "Instalando apps..."
+$apkDir = "apps"
+if (-not (Test-Path $apkDir)) {
+    Write-Host "No se encontró el directorio $apkDir. Nada para instalar."
+    exit 0
+}
+$apkFiles = Get-ChildItem -Path $apkDir -Filter *.apk
+if (-not $apkFiles) {
+    Write-Host "No hay archivos apk en $apkDir. Nada para instalar."
+    exit 0
+}
+foreach ($apk in $apkFiles) {
+    Write-Host "Instalando $($apk.FullName) ..."
+    & adb install -r $apk.FullName
+}
+
 # Definir zona horaria desde opciones.txt, si existe
 $opcionesFile = "opciones.txt"
 $zonahoraria = ""
@@ -17,6 +33,7 @@ if (Test-Path $opcionesFile) {
         $zonahoraria = $linea -replace '^zonahoraria=', ''
         if ($zonahoraria) {
             Write-Host "Definiendo zona horaria a: $zonahoraria"
+            & adb shell settings put global auto_time_zone 0
             & adb shell setprop persist.sys.timezone $zonahoraria
         } else {
             Write-Host "No se definió zona horaria. Se mantiene la actual."
@@ -24,7 +41,9 @@ if (Test-Path $opcionesFile) {
     }
 }
 
+# Script para desactivar aplicaciones y luego instalar archivos APK en un dispositivo Android usando ADB.
 Write-Host "Desactivando apps..."
+# Archivo que contiene la lista de paquetes a desactivar, uno por línea.
 $appListFile = "desactivar.txt"
 if (-not (Test-Path $appListFile)) {
     Write-Host "No se encontró el archivo $appListFile."
@@ -46,22 +65,6 @@ if (-not $appList) {
         & adb shell pm clear $pkg | Out-Null
         & adb shell pm disable-user --user 0 $pkg | Out-Null
     }
-}
-
-Write-Host "Instalando apps..."
-$apkDir = "apps"
-if (-not (Test-Path $apkDir)) {
-    Write-Host "No se encontró el directorio $apkDir. Nada para instalar."
-    exit 0
-}
-$apkFiles = Get-ChildItem -Path $apkDir -Filter *.apk
-if (-not $apkFiles) {
-    Write-Host "No hay archivos apk en $apkDir. Nada para instalar."
-    exit 0
-}
-foreach ($apk in $apkFiles) {
-    Write-Host "Instalando $($apk.FullName) ..."
-    & adb install -r $apk.FullName
 }
 
 # Pregunta al usuario si desea reiniciar el dispositivo

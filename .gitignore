@@ -1,3 +1,5 @@
 # Ignorar archivos de configuración de VS Code
 .vscode/
 *.code-workspace
+apps/*.apk
+ti-vi/*.apk

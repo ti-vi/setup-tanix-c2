@@ -33,3 +33,8 @@ com.android.traceur
 com.softwinner.miracastReceiver
 com.softwinner.awmanager
 com.droidlogic.updater
+com.android.printspooler
+com.oranth.deviceinforeport
+com.oranth.accessibility
+com.oranth.upgradeapplication
+com.oranth.tvlauncher
