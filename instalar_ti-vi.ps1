@@ -1,6 +1,6 @@
 # Verifica si hay dispositivos ADB conectados
-$adbDevices = & adb devices
-if (-not ($adbDevices -match "device`r?`n")) {
+$adbDevices = & adb devices | Select-Object -Skip 1 | Where-Object { $_ -match '\bdevice$' }
+if (-not $adbDevices) {
     Write-Host "No hay dispositivos ADB detectados. Conecta un dispositivo y vuelve a intentar."
     exit 1
 }
@@ -29,8 +29,8 @@ if (Test-Path "ti-vi/Ti-Vi.apk") {
 Write-Host "Esperando a que el dispositivo se reinicie y se conecte por adb..."
 do {
     Start-Sleep -Seconds 3
-    $adbDevices = & adb devices
-} until ($adbDevices -match "device`r?`n")
+    $adbDevices = & adb devices | Select-Object -Skip 1 | Where-Object { $_ -match '\bdevice$' }
+} until ($adbDevices)
 Write-Host "Dispositivo disponible. Ejecutando configuración de permisos."
 
 # Habilitar los permisos estandard

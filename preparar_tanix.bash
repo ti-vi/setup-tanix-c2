@@ -5,6 +5,7 @@ if ! adb devices | awk 'NR>1 && $2=="device"' | grep -q .; then
   exit 1
 fi
 
+echo "Dispositivo detectado."
 echo "Instalando apps..."
 # Carpeta donde se encuentran los archivos APK a instalar.
 APK_DIR="apps"
@@ -34,37 +35,55 @@ if [ -f "$OPCIONES_FILE" ]; then
   fi
 fi
 
-# Script para desactivar aplicaciones y luego instalar archivos APK en un dispositivo Android usando ADB.
-echo "Desactivando apps..."
-# Archivo que contiene la lista de paquetes a desactivar, uno por línea.
-APP_LIST_FILE="desactivar.txt"
-# Lee la lista de paquetes, ignorando líneas vacías y comentarios, y los une en una sola línea separada por espacios.
-APP_LIST=$(grep -v '^\s*#' "$APP_LIST_FILE" | grep -v '^\s*$' | xargs)
-# Si la lista está vacía, sale con un mensaje.
-if [ -z "$APP_LIST" ]; then
-  echo "No hay apps para desactivar en $APP_LIST_FILE."
-else
-  # Para cada paquete en la lista, verifica primero si ya está desactivado.
-  for pkg in $APP_LIST; do
-    # Comprueba si el paquete ya está desactivado
-    if adb shell pm list packages -d | grep -q "$pkg"; then
-      echo "Saltando $pkg (ya está desactivada)"
-      continue
-    fi
-    echo "Procesando $pkg ..."
-    adb shell am force-stop "$pkg" > /dev/null 2>&1
-    adb shell pm clear "$pkg" > /dev/null 2>&1
-    adb shell pm disable-user --user 0 "$pkg" > /dev/null 2>&1
-  done
-fi
+# Función para desactivar aplicaciones usando la lista de desactivar.txt
+desactivar_apps() {
+  echo "Depurando apps..."
+  # Archivo que contiene la lista de paquetes a desactivar, uno por línea.
+  local APP_LIST_FILE="desactivar.txt"
+  # Lee la lista de paquetes, ignorando líneas vacías y comentarios, y los une en una sola línea separada por espacios.
+  local APP_LIST=$(grep -v '^\s*#' "$APP_LIST_FILE" | grep -v '^\s*$' | xargs)
+  # Si la lista está vacía, sale con un mensaje.
+  if [ -z "$APP_LIST" ]; then
+    echo "No hay apps para desactivar en $APP_LIST_FILE."
+  else
+    # Para cada paquete en la lista, verifica primero si ya está desactivado.
+    for pkg in $APP_LIST; do
+      # Comprueba si el paquete ya está desactivado
+      if adb shell pm list packages -d | grep -q "$pkg"; then
+        echo "Saltando $pkg (ya está desactivada)"
+        continue
+      fi
+      echo "Procesando $pkg ..."
+      adb shell am force-stop "$pkg" > /dev/null 2>&1
+      adb shell pm clear "$pkg" > /dev/null 2>&1
+      adb shell pm disable-user --user 0 "$pkg" > /dev/null 2>&1
+    done
+    sleep 3
+    adb reboot
+  fi
+}
 
-# Pregunta al usuario si desea reiniciar el dispositivo
-read -p "¿Deseas reiniciar el dispositivo ahora? (y/n): " respuesta
-if [[ "$respuesta" =~ ^[sSyY]$ ]]; then
-  echo "Reiniciando el dispositivo..."
-  adb reboot
-else
-  echo "Reinicio cancelado."
-fi
+# Llamar a la función para desactivar apps
+desactivar_apps
+
+# Esperar a que el dispositivo esté disponible por adb tras el reinicio
+echo "Esperando a que el dispositivo se reinicie y se conecte por adb..."
+while true; do
+  sleep 10
+  if adb devices | awk 'NR>1 && $2=="device"' | grep -q .; then
+    break
+  fi
+  echo ""
+  echo "*****************************************************************************"
+  echo "*    Debe habilitar nuevamente la opcion de depuración en el dispositivo.   *"
+  echo "*         Developer Options > Debugging > USB0 device mode enable           *"
+  echo "*                           CTRL + C para cancelar                          *"
+  echo "*****************************************************************************"
+  echo ""
+done
+echo "Ejecutando segundo paso de depuración."
+
+# Llamar a la función para desactivar apps
+desactivar_apps
 
 exit 0
