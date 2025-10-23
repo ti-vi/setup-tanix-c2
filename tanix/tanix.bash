@@ -1,17 +1,21 @@
 #!/bin/bash
-# Verifica si hay dispositivos ADB conectados
-if ! adb devices | awk 'NR>1 && $2=="device"' | grep -q .; then
-  echo "No hay dispositivos ADB detectados. Conecta un dispositivo y vuelve a intentar."
-  exit 1
+
+# Source shared helper functions
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+if [ -f "$_SCRIPT_DIR/../lib/adb_helpers.sh" ]; then
+  # shellcheck source=/dev/null
+  . "$_SCRIPT_DIR/../lib/adb_helpers.sh"
+else
+  echo "Advertencia: helper 'lib/adb_helpers.sh' no encontrado. Se espera que dispositivos_adb esté disponible en el entorno."
 fi
 
-echo "Dispositivo detectado."
+dispositivos_adb
+
 echo "Instalando apps..."
-# Carpeta donde se encuentran los archivos APK a instalar.
-APK_DIR="apps"
 # Busca archivos con extensión .apk en el directorio especificado.
-APK_FILES=("$APK_DIR"/*.apk)
+APK_FILES=($_SCRIPT_DIR/apps/*.apk)
 # Si no hay archivos APK, muestra un mensaje y termina el script.
+ls $APK_FILES
 if [ ! -e "${APK_FILES[0]}" ]; then
   echo "No hay archivos apk en $APK_DIR. Nada para instalar."
   exit 0
@@ -23,7 +27,7 @@ for apk in "${APK_FILES[@]}"; do
 done
 
 # Definir zona horaria desde opciones.txt
-OPCIONES_FILE="opciones.txt"
+OPCIONES_FILE="$_SCRIPT_DIR/opciones.txt"
 if [ -f "$OPCIONES_FILE" ]; then
   zonahoraria=$(grep '^zonahoraria=' "$OPCIONES_FILE" | cut -d'=' -f2)
   if [ -n "$zonahoraria" ]; then
@@ -39,7 +43,7 @@ fi
 desactivar_apps() {
   echo "Depurando apps..."
   # Archivo que contiene la lista de paquetes a desactivar, uno por línea.
-  local APP_LIST_FILE="desactivar.txt"
+  local APP_LIST_FILE="$_SCRIPT_DIR/desactivar.txt"
   # Lee la lista de paquetes, ignorando líneas vacías y comentarios, y los une en una sola línea separada por espacios.
   local APP_LIST=$(grep -v '^\s*#' "$APP_LIST_FILE" | grep -v '^\s*$' | xargs)
   # Si la lista está vacía, sale con un mensaje.
@@ -65,24 +69,10 @@ desactivar_apps() {
 
 # Llamar a la función para desactivar apps
 desactivar_apps
+echo "Reiniciando equipo, deberá habilitar la conexion ADB nuevamente..."
 
-# Esperar a que el dispositivo esté disponible por adb tras el reinicio
-echo "Esperando a que el dispositivo se reinicie y se conecte por adb..."
-while true; do
-  sleep 10
-  if adb devices | awk 'NR>1 && $2=="device"' | grep -q .; then
-    break
-  fi
-  echo ""
-  echo "*****************************************************************************"
-  echo "*    Debe habilitar nuevamente la opcion de depuración en el dispositivo.   *"
-  echo "*         Developer Options > Debugging > USB0 device mode enable           *"
-  echo "*                           CTRL + C para cancelar                          *"
-  echo "*****************************************************************************"
-  echo ""
-done
+dispositivos_adb
 echo "Ejecutando segundo paso de depuración."
-
 # Llamar a la función para desactivar apps
 desactivar_apps
 
